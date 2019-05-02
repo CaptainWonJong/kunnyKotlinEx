@@ -34,6 +34,7 @@ android {
 }
 
 dependencies {
+    //noinspection GradleCompatible
     implementation "com.android.support:appcompat-v7:$supportLibVersion"
     implementation "com.android.support:customtabs:$supportLibVersion"
     implementation "com.android.support:design:$supportLibVersion"
@@ -45,6 +46,7 @@ dependencies {
     implementation "com.squareup.retrofit2:converter-gson:$retrofitVersion"
     implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    implementation "org.jetbrains.anko:anko:$ankoVersion"
 
     kapt "com.github.bumptech.glide:compiler:$glideVersion"
 }
