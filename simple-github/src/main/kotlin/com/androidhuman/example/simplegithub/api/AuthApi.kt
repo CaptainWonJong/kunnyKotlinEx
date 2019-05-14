@@ -1,12 +1,14 @@
 package com.androidhuman.example.simplegithub.api
 
 import com.androidhuman.example.simplegithub.api.model.GithubAccessToken
+import io.reactivex.Observable
 
 import retrofit2.Call
 import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.Headers
 import retrofit2.http.POST
+import java.util.*
 
 interface AuthApi {
 
@@ -16,5 +18,5 @@ interface AuthApi {
     fun getAccessToken(
             @Field("client_id") clientId: String,
             @Field("client_secret") clientSecret: String,
-            @Field("code") code: String): Call<GithubAccessToken>
+            @Field("code") code: String): Observable<GithubAccessToken>
 }

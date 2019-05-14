@@ -14,12 +14,19 @@ import com.androidhuman.example.simplegithub.api.GithubApi
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
 import com.androidhuman.example.simplegithub.api.model.RepoSearchResponse
 import com.androidhuman.example.simplegithub.api.provideGithubApi
+import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.ui.repo.RepositoryActivity
+import com.jakewharton.rxbinding2.support.v7.widget.RxSearchView
+import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_search.*
 import org.jetbrains.anko.startActivity
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.lang.IllegalStateException
 
 class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     internal lateinit var menuSearch: MenuItem
@@ -30,7 +37,10 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal val api: GithubApi by lazy { provideGithubApi(this) }
 
-    internal var searchCall: Call<RepoSearchResponse>? = null
+    //internal var searchCall: Call<RepoSearchResponse>? = null
+    internal val disposables = CompositeDisposable()
+
+    internal val viewDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,28 +54,49 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     override fun onStop() {
         super.onStop()
-        searchCall?.run { cancel() }
+        //searchCall?.run { cancel() }
+        disposables.clear()
+
+        if (isFinishing) {
+            viewDisposable.clear()
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_activity_search, menu)
         menuSearch = menu.findItem(R.id.menu_activity_search_query)
 
-        searchView = (menuSearch.actionView as SearchView).apply {
-            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String): Boolean {
-                    updateTitle(query)
+        //searchView = (menuSearch.actionView as SearchView)
+                /*
+                .apply {
+                    setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                        override fun onQueryTextSubmit(query: String): Boolean {
+                            updateTitle(query)
+                            hideSoftKeyboard()
+                            collapseSearchView()
+                            searchRepository(query)
+                            return true
+                        }
+
+                        override fun onQueryTextChange(newText: String): Boolean {
+                            return false
+                        }
+                    })
+                }
+                */
+
+        viewDisposable += searchView.queryTextChangeEvents()
+                .filter { it.isSubmitted }
+                .map { it.queryText() }
+                .filter { it.isNotEmpty() }
+                .map { it.toString() }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { query ->
+                    updateTitle(query as String)
                     hideSoftKeyboard()
                     collapseSearchView()
-                    searchRepository(query)
-                    return true
+                    searchRepository(query as String)
                 }
-
-                override fun onQueryTextChange(newText: String): Boolean {
-                    return false
-                }
-            })
-        }
 
         with(menuSearch) {
             setOnActionExpandListener(object : MenuItem.OnActionExpandListener {
@@ -99,6 +130,7 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     }
 
     private fun searchRepository(query: String) {
+        /*
         clearResults()
         hideError()
         showProgress()
@@ -129,6 +161,31 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
                 showError(t.message)
             }
         })
+        */
+
+        disposables += api.searchRepository(query)
+                .flatMap {
+                    if (0 == it.totalCount) {
+                        Observable.error(IllegalStateException("No search result"))
+                    } else {
+                        Observable.just(it.items)
+                    }
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe {
+                    clearResults()
+                    hideError()
+                    showProgress()
+                }
+                .doOnTerminate { hideProgress() }
+                .subscribe({ items ->
+                    with(adapter) {
+                        setItems(items)
+                        notifyDataSetChanged()
+                    }
+                }) {
+                    showError(it.message)
+                }
     }
 
     private fun updateTitle(query: String) {

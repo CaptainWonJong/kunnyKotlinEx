@@ -7,7 +7,10 @@ import com.androidhuman.example.simplegithub.R
 import com.androidhuman.example.simplegithub.api.GithubApi
 import com.androidhuman.example.simplegithub.api.model.GithubRepo
 import com.androidhuman.example.simplegithub.api.provideGithubApi
+import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.ui.GlideApp
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_repository.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -25,7 +28,8 @@ class RepositoryActivity : AppCompatActivity() {
 
     internal val api: GithubApi by lazy { provideGithubApi(this) }
 
-    internal var repoCall: Call<GithubRepo>? = null
+    //internal var repoCall: Call<GithubRepo>? = null
+    internal val disposables = CompositeDisposable()
 
     internal val dateFormatInResponse = SimpleDateFormat(
             "yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
@@ -47,10 +51,12 @@ class RepositoryActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        repoCall?.run { cancel() }
+        //repoCall?.run { cancel() }
+        disposables.clear()
     }
 
     private fun showRepositoryInfo(login: String, repoName: String) {
+        /*
         showProgress()
 
         repoCall = api.getRepository(login, repoName)
@@ -95,6 +101,41 @@ class RepositoryActivity : AppCompatActivity() {
                 showError(t.message)
             }
         })
+        */
+
+        disposables += api.getRepository(login, repoName)
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { showProgress() }
+                .doOnError { hideProgress(false) }
+                .doOnComplete { hideProgress(true) }
+                .subscribe({ repo ->
+                    GlideApp.with(this@RepositoryActivity)
+                            .load(repo.owner.avatarUrl)
+                            .into(ivActivityRepositoryProfile)
+
+                    tvActivityRepositoryName.text = repo.fullName
+                    tvActivityRepositoryStars.text = resources
+                            .getQuantityString(R.plurals.star, repo.stars, repo.stars)
+                    if (null == repo.description) {
+                        tvActivityRepositoryDescription.setText(R.string.no_description_provided)
+                    } else {
+                        tvActivityRepositoryDescription.text = repo.description
+                    }
+                    if (null == repo.language) {
+                        tvActivityRepositoryLanguage.setText(R.string.no_language_specified)
+                    } else {
+                        tvActivityRepositoryLanguage.text = repo.language
+                    }
+
+                    try {
+                        val lastUpdate = dateFormatInResponse.parse(repo.updatedAt)
+                        tvActivityRepositoryLastUpdate.text = dateFormatToShow.format(lastUpdate)
+                    } catch (e: ParseException) {
+                        tvActivityRepositoryLastUpdate.text = getString(R.string.unknown)
+                    }
+                }) {
+                    showError(it.message)
+                }
     }
 
     private fun showProgress() {

@@ -13,7 +13,10 @@ import com.androidhuman.example.simplegithub.api.AuthApi
 import com.androidhuman.example.simplegithub.api.model.GithubAccessToken
 import com.androidhuman.example.simplegithub.api.provideAuthApi
 import com.androidhuman.example.simplegithub.data.AuthTokenProvider
+import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.ui.main.MainActivity
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_sign_in.*
 import org.jetbrains.anko.clearTask
 import org.jetbrains.anko.intentFor
@@ -28,7 +31,8 @@ class SignInActivity : AppCompatActivity() {
 
     internal val authTokenProvider: AuthTokenProvider by lazy { AuthTokenProvider(this) }
 
-    internal var accessTokenCall: Call<GithubAccessToken>? = null
+    //internal var accessTokenCall: Call<GithubAccessToken>? = null
+    internal val disposables = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +57,8 @@ class SignInActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        accessTokenCall?.run { cancel() }
+        //accessTokenCall?.run { cancel() }
+        disposables.clear()
     }
 
 
@@ -71,8 +76,8 @@ class SignInActivity : AppCompatActivity() {
     }
 
     private fun getAccessToken(code: String) {
+        /*
         showProgress()
-
         accessTokenCall = api.getAccessToken(
                 BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
 
@@ -97,6 +102,19 @@ class SignInActivity : AppCompatActivity() {
                 showError(t)
             }
         })
+        */
+
+        disposables += api.getAccessToken(BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
+                .map { it.accessToken }
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnSubscribe { showProgress() }
+                .doOnTerminate { hideProgress() }
+                .subscribe({ token ->
+                    authTokenProvider.updateToken(token)
+                    launchMainActivity()
+                }) {
+                    showError(it)
+                }
     }
 
     private fun showProgress() {
