@@ -5,9 +5,10 @@ import android.preference.PreferenceManager
 
 class AuthTokenProvider(private val context: Context) {
 
-    val token: String?
-        get() = PreferenceManager.getDefaultSharedPreferences(context)
-                .getString(KEY_AUTH_TOKEN, null)
+    companion object {
+
+        private const val KEY_AUTH_TOKEN = "auth_token"
+    }
 
     fun updateToken(token: String) {
         PreferenceManager.getDefaultSharedPreferences(context).edit()
@@ -15,10 +16,7 @@ class AuthTokenProvider(private val context: Context) {
                 .apply()
     }
 
-    // 오른쪽과 동일 : private static final String KEY_AUTH_TOKEN = "auth_token";
-    companion object {
-
-        private val KEY_AUTH_TOKEN = "auth_token"
-    }
-
+    val token: String?
+        get() = PreferenceManager.getDefaultSharedPreferences(context)
+                .getString(KEY_AUTH_TOKEN, null)
 }

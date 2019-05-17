@@ -4,32 +4,27 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.androidhuman.example.simplegithub.R
-import com.androidhuman.example.simplegithub.api.GithubApi
-import com.androidhuman.example.simplegithub.api.model.GithubRepo
 import com.androidhuman.example.simplegithub.api.provideGithubApi
 import com.androidhuman.example.simplegithub.extensions.plusAssign
 import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
 import com.androidhuman.example.simplegithub.ui.GlideApp
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_repository.*
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Locale
 
 class RepositoryActivity : AppCompatActivity() {
 
     companion object {
-        val KEY_USER_LOGIN = "user_login"
-        val KEY_REPO_NAME = "repo_name"
+
+        const val KEY_USER_LOGIN = "user_login"
+
+        const val KEY_REPO_NAME = "repo_name"
     }
 
-    internal val api: GithubApi by lazy { provideGithubApi(this) }
+    internal val api by lazy { provideGithubApi(this) }
 
-    //internal var repoCall: Call<GithubRepo>? = null
     internal val disposables = AutoClearedDisposable(this)
 
     internal val dateFormatInResponse = SimpleDateFormat(
@@ -53,53 +48,6 @@ class RepositoryActivity : AppCompatActivity() {
     }
 
     private fun showRepositoryInfo(login: String, repoName: String) {
-        /*
-        showProgress()
-
-        repoCall = api.getRepository(login, repoName)
-        repoCall!!.enqueue(object : Callback<GithubRepo> {
-            override fun onResponse(call: Call<GithubRepo>, response: Response<GithubRepo>) {
-                hideProgress(true)
-
-                val repo = response.body()
-                if (response.isSuccessful && null != repo) {
-                    GlideApp.with(this@RepositoryActivity)
-                            .load(repo.owner.avatarUrl)
-                            .into(ivActivityRepositoryProfile)
-
-                    tvActivityRepositoryName.text = repo.fullName
-                    tvActivityRepositoryStars.text = resources
-                            .getQuantityString(R.plurals.star, repo.stars, repo.stars)
-                    if (null == repo.description) {
-                        tvActivityRepositoryDescription.setText(R.string.no_description_provided)
-                    } else {
-                        tvActivityRepositoryDescription.text = repo.description
-                    }
-                    if (null == repo.language) {
-                        tvActivityRepositoryLanguage.setText(R.string.no_language_specified)
-                    } else {
-                        tvActivityRepositoryLanguage.text = repo.language
-                    }
-
-                    try {
-                        val lastUpdate = dateFormatInResponse.parse(repo.updatedAt)
-                        tvActivityRepositoryLastUpdate.text = dateFormatToShow.format(lastUpdate)
-                    } catch (e: ParseException) {
-                        tvActivityRepositoryLastUpdate.text = getString(R.string.unknown)
-                    }
-
-                } else {
-                    showError("Not successful: " + response.message())
-                }
-            }
-
-            override fun onFailure(call: Call<GithubRepo>, t: Throwable) {
-                hideProgress(false)
-                showError(t.message)
-            }
-        })
-        */
-
         disposables += api.getRepository(login, repoName)
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnSubscribe { showProgress() }

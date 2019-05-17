@@ -1,10 +1,12 @@
 package com.androidhuman.example.simplegithub.extensions
 
 import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
-import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.Completable
 import io.reactivex.disposables.Disposable
+import io.reactivex.schedulers.Schedulers
 
-/**
- * CompositeDisposable의 '+-' 연산자 뒤에 Disposable 타입이 오는 경우를 재정의
- */
-operator fun AutoClearedDisposable.plusAssign(disposable: Disposable) = this.add(disposable)
+operator fun AutoClearedDisposable.plusAssign(disposable: Disposable)
+        = this.add(disposable)
+
+fun runOnIoScheduler(func: () -> Unit): Disposable
+        = Completable.fromCallable(func).subscribeOn(Schedulers.io()).subscribe()
