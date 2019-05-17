@@ -15,6 +15,7 @@ import com.androidhuman.example.simplegithub.api.model.GithubRepo
 import com.androidhuman.example.simplegithub.api.model.RepoSearchResponse
 import com.androidhuman.example.simplegithub.api.provideGithubApi
 import com.androidhuman.example.simplegithub.extensions.plusAssign
+import com.androidhuman.example.simplegithub.rx.AutoClearedDisposable
 import com.androidhuman.example.simplegithub.ui.repo.RepositoryActivity
 import com.jakewharton.rxbinding2.support.v7.widget.RxSearchView
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
@@ -38,27 +39,20 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     internal val api: GithubApi by lazy { provideGithubApi(this) }
 
     //internal var searchCall: Call<RepoSearchResponse>? = null
-    internal val disposables = CompositeDisposable()
+    internal val disposables = AutoClearedDisposable(this)
 
-    internal val viewDisposable = CompositeDisposable()
+    internal val viewDisposable = AutoClearedDisposable(lifecycleOwner = this, alwaysClearOnStop = false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
+        lifecycle += disposables
+        lifecycle += viewDisposable
+
         with(rvActivitySearchList) {
             layoutManager = LinearLayoutManager(this@SearchActivity)
             adapter = this@SearchActivity.adapter
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        //searchCall?.run { cancel() }
-        disposables.clear()
-
-        if (isFinishing) {
-            viewDisposable.clear()
         }
     }
 
